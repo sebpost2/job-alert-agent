@@ -13,9 +13,10 @@ Autor: [sebpost2](https://github.com/sebpost2)
 
 ## Resultado del agente corriendo
 
-> 🔁 **Cómo verificar que funciona**: los badges arriba muestran el estado de los crons en verde. La pestaña [Actions](../../actions) del repo deja el log público de cada ejecución — scrape, score, sync y digest.
+> 📋 **Live dashboard (Notion público)** → **[bevel-rose-8cb.notion.site/Job-Alerts](https://bevel-rose-8cb.notion.site/Job-Alerts-3674d098c1e7807aafe0cf6a3507e526)**
+> Cada job que el agente clasificó como `fit` o `stretch` aparece ahí con score, razón, fuente y link a la oferta. Los `skip` se quedan en Postgres por si hay que auditar.
 >
-> 📋 **Database Notion**: solo se sincronizan jobs con `verdict ∈ {fit, stretch}`; los `skip` se quedan en Postgres por si hay que auditar. Resultado: ~10 filas relevantes en vez de ~130 por ciclo.
+> 🔁 **Cómo verificar que funciona**: los badges arriba muestran el estado de los crons en verde. La pestaña [Actions](../../actions) del repo deja el log público de cada ejecución — scrape, score, sync y digest.
 >
 > 📲 **Telegram**: el digest diario manda el top N fits (default 3) y marca cada uno como notificado para no spamear con repetidos.
 
