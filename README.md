@@ -20,6 +20,12 @@ Autor: [sebpost2](https://github.com/sebpost2)
 >
 > 📲 **Telegram**: el digest diario manda el top N fits (default 3) y marca cada uno como notificado para no spamear con repetidos.
 
+<p align="center">
+  <img src="docs/telegram-digest.jpg" alt="Telegram digest mostrando top 3 fits del día" width="420">
+  <br>
+  <em>Digest del bot — top 3 fits con score, fuente, razón y link. Cuando ya envió todo, responde con "No hay nuevos fits hoy".</em>
+</p>
+
 ## Highlights
 
 - **End-to-end automatizado**: cron de GitHub Actions dispara → Python scrapea 2 fuentes → LLM califica fit → Postgres dedupe → Notion archivo + Telegram digest. Sin intervención humana.
