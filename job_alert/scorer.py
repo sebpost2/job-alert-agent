@@ -48,10 +48,10 @@ def _hard_skip_reason(title: str) -> str | None:
     """Devuelve el motivo si el job debe saltarse sin pasar por el LLM."""
     m = HARD_SKIP_TITLE_PATTERNS.search(title)
     if m:
-        return f"Fuera de dominio (no IT): '{m.group(1).lower()}'"
+        return f"Out of domain (non-IT): '{m.group(1).lower()}'"
     m = HARD_SKIP_SENIORITY.search(title)
     if m:
-        return f"Seniority fuera de rango junior/semi-senior: '{m.group(1).lower()}'"
+        return f"Seniority out of junior/semi-senior range: '{m.group(1).lower()}'"
     return None
 
 
@@ -60,7 +60,7 @@ Tu respuesta DEBE ser JSON con exactamente este shape:
 {
   "fit_score": <int 0-100>,
   "verdict": "<fit | stretch | skip>",
-  "reason": "<1-2 frases en español, concretas, máx 280 chars>"
+  "reason": "<1-2 sentences in English, concrete, max 280 chars>"
 }
 Sin texto extra, sin markdown, solo el objeto JSON."""
 
