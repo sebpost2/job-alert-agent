@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from dataclasses import dataclass
 
 from groq import AsyncGroq
@@ -18,6 +19,41 @@ MODEL = "llama-3.1-8b-instant"
 MAX_DESC_CHARS = 1500
 
 RESPONSE_FORMAT = {"type": "json_object"}
+
+# Patrones que NO son software dev / IA y aparecen en getonboard. Si matchean
+# en el título, no gastamos un call a Groq y los marcamos skip directo.
+HARD_SKIP_TITLE_PATTERNS = re.compile(
+    r"\b("
+    r"m[eé]dic[oa]|enfermer|doctor|cl[ií]nic|psic[oó]log|"
+    r"contador|abogad|legal counsel|"
+    r"redactor|editor m[eé]dic|copywriter|"
+    r"community manager|social media|growth manager|"
+    r"ventas|sales(?!force)|comercial|account executive|"
+    r"recursos humanos|hr business|talent acquisition|reclutador|"
+    r"dise[ñn]ador gr[áa]fico|graphic designer|"
+    r"chef|cocinero|barista"
+    r")\b",
+    re.IGNORECASE,
+)
+
+# Seniority muy alta que requiere experiencia que Sebastián no tiene aún.
+HARD_SKIP_SENIORITY = re.compile(
+    r"\b(staff engineer|principal engineer|vp of |head of |director of |"
+    r"chief [a-z]+ officer|cto|cio)\b",
+    re.IGNORECASE,
+)
+
+
+def _hard_skip_reason(title: str) -> str | None:
+    """Devuelve el motivo si el job debe saltarse sin pasar por el LLM."""
+    m = HARD_SKIP_TITLE_PATTERNS.search(title)
+    if m:
+        return f"Fuera de dominio (no IT): '{m.group(1).lower()}'"
+    m = HARD_SKIP_SENIORITY.search(title)
+    if m:
+        return f"Seniority fuera de rango junior/semi-senior: '{m.group(1).lower()}'"
+    return None
+
 
 JSON_SHAPE_HINT = """\
 Tu respuesta DEBE ser JSON con exactamente este shape:
@@ -36,11 +72,20 @@ def _system_prompt(keywords: tuple[str, ...]) -> str:
 
 Keywords del candidato (boost si aparecen): {", ".join(keywords)}
 
-REGLAS:
-- Sé estricto. La mayoría son "skip" (geo-bloqueados, senior puro, stack ajeno).
-- "fit" solo para los que realmente puede aplicar HOY.
-- Considera: seniority, idioma, geo (Perú/LatAm/remoto), stack.
-- Razón CONCRETA, no genérica.
+REGLAS DE CLASIFICACIÓN (estrictas):
+- "fit": el candidato puede aplicar HOY con probabilidad razonable de pasar filtro inicial.
+  Requiere: seniority junior o semi-senior, stack que ya maneja (Python / Odoo / Laravel / Vue / SQL / Docker / Git),
+  geo abierta (Perú, LatAm o remoto global), idioma compatible (ES o EN intermedio).
+- "stretch": cumple casi todo pero le falta UNA pieza puntual (ej. 1 framework concreto, +1 año de experiencia,
+  inglés un poco más alto). Vale la pena postular igual.
+- "skip": cualquiera de estos descartes automáticos:
+    * seniority senior+/staff/principal/director/lead con 5+ años requeridos
+    * dominio no-IT (medicina, ventas, marketing, legal, RRHH, diseño gráfico, edición de contenidos)
+    * stack completamente ajeno (Salesforce admin, Java enterprise sin Python, SAP, .NET legacy, Cobol)
+    * geo bloqueada (solo US citizens, solo on-site en otro país, requiere visa propia)
+    * roles de management puro sin componente técnico
+
+Razón SIEMPRE concreta: cita el match o el descarte específico, no escribas frases genéricas.
 
 {JSON_SHAPE_HINT}"""
 
@@ -110,11 +155,26 @@ async def score_batch(
     """
     client = AsyncGroq(api_key=config.groq_api_key, max_retries=5)
     out: list[tuple[int, ScoreResult | Exception]] = []
+    llm_call_index = 0
 
     try:
         for i, job in enumerate(jobs):
-            if i > 0:
+            hard_skip = _hard_skip_reason(job["title"])
+            if hard_skip:
+                result = ScoreResult(fit_score=0, verdict="skip", reason=hard_skip)
+                out.append((job["id"], result))
+                log.info(
+                    "scorer: %d/%d hard-skip %s :: %s",
+                    i + 1,
+                    len(jobs),
+                    hard_skip,
+                    job["title"][:50],
+                )
+                continue
+
+            if llm_call_index > 0:
                 await asyncio.sleep(min_interval_sec)
+            llm_call_index += 1
             try:
                 result = await score_job(
                     client,
@@ -127,7 +187,7 @@ async def score_batch(
                 )
                 out.append((job["id"], result))
                 log.info(
-                    "scorer: %d/%d → %s(%d) %s",
+                    "scorer: %d/%d -> %s(%d) %s",
                     i + 1,
                     len(jobs),
                     result.verdict,

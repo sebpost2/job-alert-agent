@@ -105,22 +105,23 @@ async def cmd_digest() -> int:
 
     cfg = config_mod.load()
     async with db.connection(cfg) as conn:
-        # 1. Sincronizar TODOS los jobs scoreados a Notion (archivo completo).
-        all_scored = await conn.fetch(
+        # 1. Sincronizar a Notion solo los relevantes (fit + stretch). Los skip
+        #    se quedan en Postgres por si se quiere auditar; saturarían la DB.
+        relevant = await conn.fetch(
             """
             SELECT id, source, url, title, company, location, posted_date,
                    fit_score, verdict, reason
             FROM jobs
-            WHERE fit_score IS NOT NULL
+            WHERE verdict IN ('fit', 'stretch')
             ORDER BY scored_at DESC
             LIMIT 200
             """
         )
-        jobs_for_notion = [dict(r) for r in all_scored]
-        log.info("digest: sincronizando %d jobs a Notion", len(jobs_for_notion))
+        jobs_for_notion = [dict(r) for r in relevant]
+        log.info("digest: sincronizando %d jobs (fit+stretch) a Notion", len(jobs_for_notion))
         created, updated, errors = await notion_sync.sync(cfg, jobs_for_notion)
         log.info(
-            "digest: notion → creados=%d actualizados=%d errores=%d",
+            "digest: notion -> creados=%d actualizados=%d errores=%d",
             created,
             updated,
             errors,
