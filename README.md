@@ -1,107 +1,111 @@
+**[English](README.md) · [Español](README.es.md)**
+
+---
+
 # Job Alert Agent
 
 [![scrape + score](https://github.com/sebpost2/job-alert-agent/actions/workflows/pipeline.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/pipeline.yml)
 [![daily digest](https://github.com/sebpost2/job-alert-agent/actions/workflows/digest.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/digest.yml)
 
-Agente que cada 12 horas scrapea ofertas laborales de [getonboard](https://www.getonbrd.com) y [RemoteOK](https://remoteok.com), las califica contra mi CV usando un LLM, archiva los relevantes en una database de Notion y manda un digest diario a Telegram con los mejores fits del día.
+Agent that every 12 hours scrapes job postings from [getonboard](https://www.getonbrd.com) and [RemoteOK](https://remoteok.com), scores them against my CV using an LLM, archives the relevant ones in a Notion database, and sends a daily Telegram digest with the best fits of the day.
 
-Construido como pieza de portafolio para demostrar automatización end-to-end con LLMs, deployado completamente gratis vía GitHub Actions cron.
+Built as a portfolio piece to showcase end-to-end LLM automation, deployed completely free via GitHub Actions cron.
 
-Autor: [sebpost2](https://github.com/sebpost2)
+Author: [sebpost2](https://github.com/sebpost2)
 
 ---
 
-## Resultado del agente corriendo
+## The agent running
 
-> 📋 **Live dashboard (Notion público)** → **[bevel-rose-8cb.notion.site/Job-Alerts](https://bevel-rose-8cb.notion.site/Job-Alerts-3674d098c1e7807aafe0cf6a3507e526)**
-> Cada job que el agente clasificó como `fit` o `stretch` aparece ahí con score, razón, fuente y link a la oferta. Los `skip` se quedan en Postgres por si hay que auditar.
+> 📋 **Live dashboard (public Notion)** → **[bevel-rose-8cb.notion.site/Job-Alerts](https://bevel-rose-8cb.notion.site/Job-Alerts-3674d098c1e7807aafe0cf6a3507e526)**
+> Every job the agent classified as `fit` or `stretch` shows up there with score, reason, source and link to the offer. The `skip` ones stay in Postgres for auditing.
 >
-> 🔁 **Cómo verificar que funciona**: los badges arriba muestran el estado de los crons en verde. La pestaña [Actions](../../actions) del repo deja el log público de cada ejecución — scrape, score, sync y digest.
+> 🔁 **How to verify it works**: the badges above show the cron status in green. The repo's [Actions](../../actions) tab keeps the public log of every run — scrape, score, sync and digest.
 >
-> 📲 **Telegram**: el digest diario manda el top N fits (default 3) y marca cada uno como notificado para no spamear con repetidos.
+> 📲 **Telegram**: the daily digest sends the top N fits (default 3) and marks each one as notified so it doesn't spam duplicates.
 
 <p align="center">
-  <img src="docs/telegram-digest.jpg" alt="Telegram digest mostrando top 3 fits del día" width="420">
+  <img src="docs/telegram-digest.jpg" alt="Telegram digest showing top 3 fits of the day" width="420">
   <br>
-  <em>Digest del bot — top 3 fits con score, fuente, razón y link. Cuando ya envió todo, responde con "No hay nuevos fits hoy".</em>
+  <em>The bot's digest — top 3 fits with score, source, reason and link. When everything is already sent, it replies "No new fits today".</em>
 </p>
 
 ## Highlights
 
-- **End-to-end automatizado**: cron de GitHub Actions dispara → Python scrapea 2 fuentes → LLM califica fit → Postgres dedupe → Notion archivo + Telegram digest. Sin intervención humana.
-- **LLM con structured output**: cada job se evalúa con Groq (`llama-3.1-8b-instant`), forzando JSON con `fit_score` (0-100), `verdict` (`fit`/`stretch`/`skip`) y `reason`. Razones específicas, no genéricas.
-- **Throttle inteligente del rate limit**: respeta los 6000 TPM del free tier de Groq con un intervalo mínimo entre llamadas, manteniendo el sistema en cuota sin caer.
-- **CV-aware**: el system prompt incluye un resumen estructurado del candidato (stack, seniority, geo, idioma) — el LLM no califica "es un buen rol" en abstracto, califica "encaja con ESTE candidato".
-- **Dos comandos, una arquitectura**: `python -m job_alert scrape` + `score` (cada 12h) y `digest` (diario 8am Lima). Componibles, testeables individualmente.
-- **Stack 100% free permanente**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Cero costo, cero trial.
+- **End-to-end automated**: GitHub Actions cron fires → Python scrapes 2 sources → LLM scores fit → Postgres dedupes → Notion archive + Telegram digest. Zero human input.
+- **LLM with structured output**: every job is evaluated by Groq (`llama-3.1-8b-instant`), forcing JSON with `fit_score` (0-100), `verdict` (`fit`/`stretch`/`skip`) and `reason`. Specific reasons, not generic.
+- **Smart rate-limit throttle**: respects Groq's free-tier 6000 TPM with a minimum interval between calls, keeping the system inside quota without crashing.
+- **CV-aware**: the system prompt includes a structured candidate summary (stack, seniority, geo, language) — the LLM doesn't score "is this a good role" in the abstract, it scores "does it fit THIS candidate".
+- **Two commands, one architecture**: `python -m job_alert scrape` + `score` (every 12h) and `digest` (daily 8am Lima). Composable, individually testable.
+- **100% permanently free stack**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Zero cost, zero trial.
 
 ## Stack
 
-| Capa | Tecnología |
+| Layer | Technology |
 |---|---|
-| Lenguaje | Python 3.12+ |
+| Language | Python 3.12+ |
 | HTTP | `httpx` (async) |
-| Base de datos | PostgreSQL (Neon, serverless) |
-| Driver DB | `asyncpg` |
+| Database | PostgreSQL (Neon, serverless) |
+| DB driver | `asyncpg` |
 | LLM | Groq llama-3.1-8b-instant |
-| LLM SDK | `groq` oficial |
-| Notion | API HTTP directa via `httpx` |
-| Telegram | Bot API directa via `httpx` |
-| Trust store TLS | `truststore` (usa sistema, no certifi) |
-| Orquestación | GitHub Actions cron |
+| LLM SDK | Official `groq` |
+| Notion | Direct HTTP API via `httpx` |
+| Telegram | Direct Bot API via `httpx` |
+| TLS trust store | `truststore` (system store, not certifi) |
+| Orchestration | GitHub Actions cron |
 
-## Cómo funciona
+## How it works
 
 ```
 ┌──────────────────────┐     ┌─────────────────────────────────────┐
 │ GitHub Actions cron  │────▶│ python -m job_alert scrape          │
-│ */12h: scrape+score  │     │   ├─ getonboard (JSON API público)  │
-│ daily 8am: digest    │     │   └─ remoteok   (JSON API público)  │
+│ */12h: scrape+score  │     │   ├─ getonboard (public JSON API)   │
+│ daily 8am: digest    │     │   └─ remoteok   (public JSON API)   │
 └──────────────────────┘     │           ↓                         │
-                             │   upsert por url → Neon Postgres    │
+                             │   upsert by url → Neon Postgres     │
                              └─────────────────────────────────────┘
                                           ↓
                              ┌─────────────────────────────────────┐
                              │ python -m job_alert score           │
                              │   loop unscored jobs:               │
-                             │   ├─ regex pre-filtro (no-IT, lead) │
-                             │   │   → skip sin gastar call LLM    │
+                             │   ├─ regex pre-filter (non-IT, lead)│
+                             │   │   → skip without LLM call       │
                              │   ├─ Groq llama-3.1-8b-instant      │
-                             │   │   (json_object con CV+keywords) │
-                             │   ├─ 8s throttle entre calls (TPM)  │
+                             │   │   (json_object with CV+keywords)│
+                             │   ├─ 8s throttle between calls (TPM)│
                              │   └─ save fit_score/verdict/reason  │
                              └─────────────────────────────────────┘
                                           ↓
                              ┌─────────────────────────────────────┐
                              │ python -m job_alert digest          │
                              │   ├─ sync fit+stretch → Notion DB   │
-                             │   └─ top N fits no notificados →    │
+                             │   └─ top N un-notified fits →       │
                              │       Telegram bot (HTML parse_mode)│
                              └─────────────────────────────────────┘
 ```
 
-## Decisiones de diseño
+## Design decisions
 
-- **GitHub Actions sobre n8n**: el plan original era n8n cloud (workflow visual), pero discontinuaron el free tier en 2026. GitHub Actions es free permanente y los logs públicos son por sí mismos una pista de que el sistema corre confiablemente — mejor que una captura estática de n8n.
-- **Modelo `llama-3.1-8b-instant` sobre `gpt-oss-120b`**: el 120b tiene mejor reasoning pero solo 8000 TPM y soporta `json_schema`; el 8b tiene reasoning suficiente para clasificar fits, `json_object` mode, y similar TPM. Ambos llegan al mismo techo en este caso; el 8b gana en latencia.
-- **Pre-filtro regex antes del LLM**: getonboard mezcla roles médicos, ventas, marketing, RR.HH., etc. Una regex barata sobre el título descarta los obvios no-IT y los `staff/principal/director` sin gastar un call a Groq. Reduce ~25-30 % del costo por ciclo.
-- **Solo `fit`+`stretch` van a Notion**: los `skip` se quedan en Postgres. La DB de Notion termina con 8-12 filas relevantes por ciclo en vez de 130 — usable como tablero de aplicaciones reales, no como log.
-- **Throttle explícito (8s entre calls)**: el SDK de Groq reintenta en 429 pero con concurrencia alta cada retry vuelve a hit TPM. Mejor controlar el ritmo desde el cliente y nunca tocar el límite.
-- **Notion API directa (`httpx`) en vez de `notion-client`**: la v3.x del SDK oficial removió `databases.query()` y obliga a migrar a `data_sources.query()` (en flux). Hablar al endpoint HTTP estable es más simple y más estable.
-- **Telegram con `parse_mode=HTML`**: `MarkdownV2` exige escapar TODOS los caracteres especiales incluso dentro de URLs. HTML solo necesita escapar `< > &`. Para mensajes con links y razones en español llenas de puntuación, HTML es menos doloroso.
-- **CV resumido a ~200 tokens**: el LaTeX completo del CV cuesta ~2000 tokens por call. La versión densa (`cv_summary.py`) baja eso a ~400 sin perder lo que importa para evaluar fit: stack, seniority, geo, preferencias.
-- **`truststore` para TLS**: en CI no hace nada; en local Windows con antivirus que intercepta TLS (Avast, Kaspersky), evita el infinito drama de `CERTIFICATE_VERIFY_FAILED`.
-- **DB Neon compartida con otros proyectos**: en vez de crear otro Neon project, agregué la tabla `jobs` a la misma instancia que usan mis proyectos de boletas. Dominios distintos, infra compartida — común en producción.
+- **GitHub Actions over n8n**: the original plan was n8n cloud (visual workflow), but they discontinued the free tier in 2026. GitHub Actions is permanently free and the public logs are themselves a signal that the system runs reliably — better than a static n8n screenshot.
+- **`llama-3.1-8b-instant` over `gpt-oss-120b`**: the 120b has better reasoning but only 8000 TPM and supports `json_schema`; the 8b has enough reasoning to classify fits, supports `json_object` mode, and similar TPM. Both hit the same ceiling here; 8b wins on latency.
+- **Regex pre-filter before the LLM**: getonboard mixes medical, sales, marketing, HR roles, etc. A cheap regex on the title discards the obvious non-IT and `staff/principal/director` postings without spending a Groq call. Cuts ~25-30% off per-cycle cost.
+- **Only `fit`+`stretch` go to Notion**: `skip` rows stay in Postgres. The Notion DB ends up with 8-12 relevant rows per cycle instead of 130 — usable as an actual application board, not a log.
+- **Explicit throttle (8s between calls)**: the Groq SDK retries on 429 but with high concurrency every retry hits TPM again. Better to control pacing client-side and never touch the limit.
+- **Direct Notion API (`httpx`) over `notion-client`**: the official SDK v3.x removed `databases.query()` and pushes migrating to `data_sources.query()` (in flux). Talking to the stable HTTP endpoint is simpler and more stable.
+- **Telegram with `parse_mode=HTML`**: `MarkdownV2` requires escaping EVERY special character, even inside URLs. HTML only needs `< > &`. For messages full of punctuation, HTML is far less painful.
+- **CV compressed to ~200 tokens**: the full LaTeX CV costs ~2000 tokens per call. The dense version (`cv_summary.py`) brings that down to ~400 without losing what matters to evaluate fit: stack, seniority, geo, preferences.
+- **`truststore` for TLS**: a no-op in CI; on local Windows with antivirus that intercepts TLS (Avast, Kaspersky), it avoids the endless `CERTIFICATE_VERIFY_FAILED` drama.
+- **Neon DB shared with other projects**: instead of spinning up another Neon project, I added the `jobs` table to the same instance my receipt projects use. Different domains, shared infra — common in production.
 
-## Correr localmente
+## Running locally
 
-### Requisitos
+### Requirements
 
 - Python 3.11+
-- Una DB Postgres (recomendado: [Neon](https://neon.tech) free tier)
-- Cuenta gratis en [Groq](https://console.groq.com)
-- Bot de Telegram (vía [@BotFather](https://t.me/BotFather))
-- Integración interna de Notion + database creada y conectada
+- A Postgres DB (recommended: [Neon](https://neon.tech) free tier)
+- Free [Groq](https://console.groq.com) account
+- Telegram bot (via [@BotFather](https://t.me/BotFather))
+- Notion internal integration + a database created and connected
 
 ### Setup
 
@@ -116,45 +120,45 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
-Copia `.env.example` a `.env` y completa los valores. Luego aplica la migración:
+Copy `.env.example` to `.env` and fill in the values. Then apply the migration:
 
 ```bash
 python scripts/apply_migration.py
 ```
 
-### Uso
+### Usage
 
 ```bash
-# Scrape jobs nuevos a la DB
+# Scrape new jobs into the DB
 python -m job_alert scrape
 
-# Calificar los pendientes (~8s por job por TPM throttle)
+# Score the pending ones (~8s per job due to TPM throttle)
 python -m job_alert score
 
-# Sincronizar a Notion + mandar digest a Telegram
+# Sync to Notion + send Telegram digest
 python -m job_alert digest
 
-# Atajos
+# Shortcuts
 python -m job_alert pipeline   # scrape + score
 ```
 
-## Variables de entorno
+## Environment variables
 
-| Variable | Descripción |
+| Variable | Description |
 |---|---|
-| `DATABASE_URL` | Connection string PostgreSQL |
-| `GROQ_API_KEY` | API key de Groq |
-| `NOTION_TOKEN` | Token de la integración interna |
-| `NOTION_DB_ID` | UUID de la database de Notion |
-| `TELEGRAM_TOKEN` | Token del bot |
-| `TELEGRAM_CHAT_ID` | Tu chat ID (obtenido con `/getUpdates`) |
-| `KEYWORDS` | Lista CSV de keywords para guiar al LLM, ej. `python,ia,remoto` |
-| `DIGEST_TOP_N` | Cuántos fits incluir en el digest (default `3`) |
-| `MIN_FIT_SCORE` | Score mínimo para que un fit aparezca en digest (default `60`) |
+| `DATABASE_URL` | PostgreSQL connection string |
+| `GROQ_API_KEY` | Groq API key |
+| `NOTION_TOKEN` | Internal integration token |
+| `NOTION_DB_ID` | UUID of the Notion database |
+| `TELEGRAM_TOKEN` | Bot token |
+| `TELEGRAM_CHAT_ID` | Your chat ID (get it via `/getUpdates`) |
+| `KEYWORDS` | CSV list of keywords to bias the LLM, e.g. `python,ai,remote` |
+| `DIGEST_TOP_N` | How many fits to include in the digest (default `3`) |
+| `MIN_FIT_SCORE` | Minimum score for a fit to appear in the digest (default `60`) |
 
-En GitHub Actions estos van en `Settings → Secrets and variables → Actions`. `KEYWORDS` puede ir como `Variable` (no es secreto).
+In GitHub Actions these go under `Settings → Secrets and variables → Actions`. `KEYWORDS` can go as a `Variable` (not a secret).
 
-## Estructura del proyecto
+## Project structure
 
 ```
 ├── .github/workflows/
@@ -162,10 +166,10 @@ En GitHub Actions estos van en `Settings → Secrets and variables → Actions`.
 │   └── digest.yml       # cron 8am: digest
 ├── job_alert/
 │   ├── __main__.py      # CLI dispatcher
-│   ├── config.py        # validación temprana de env vars
+│   ├── config.py        # early env-var validation
 │   ├── db.py            # asyncpg + queries
-│   ├── cv_summary.py    # CV comprimido para el prompt
-│   ├── scorer.py        # Groq con json_object + throttle
+│   ├── cv_summary.py    # compressed CV for the prompt
+│   ├── scorer.py        # Groq with json_object + throttle
 │   ├── notion_sync.py   # upsert via httpx → Notion API
 │   ├── telegram_digest.py
 │   └── sources/
@@ -178,13 +182,13 @@ En GitHub Actions estos van en `Settings → Secrets and variables → Actions`.
 └── requirements.txt
 ```
 
-## Limitaciones conocidas
+## Known limitations
 
-- **Sin reintentos cross-run**: si `score` falla a mitad de ejecución (por excepción del LLM o de la DB), los jobs no calificados quedarán para el próximo cron. No es ideal pero el cron de 12h cubre rápido.
-- **Notion `databases.query` deprecated**: la API de Notion está migrando a `data_sources.query`. La librería oficial `notion-client` aún usa el endpoint viejo y funciona, pero a futuro habrá warnings.
-- **RemoteOK manda solo 100 jobs**: si el cron se atrasa varios días podría perder ofertas. Para uso continuo no es problema.
-- **Sin filtros geo cliente-side**: la responsabilidad de filtrar US-only/EU-only la tiene el LLM en el scorer. Suficiente en práctica pero el LLM ocasionalmente se equivoca.
+- **No cross-run retries**: if `score` fails mid-execution (LLM or DB exception), the un-scored jobs wait for the next cron. Not ideal but the 12h cron picks them up fast.
+- **Notion `databases.query` deprecated**: Notion's API is migrating to `data_sources.query`. The official `notion-client` library still uses the old endpoint and works, but warnings will appear over time.
+- **RemoteOK only sends 100 jobs**: if the cron skips several days in a row it could miss offers. Not an issue for continuous use.
+- **No client-side geo filtering**: filtering US-only/EU-only is the LLM's job inside the scorer. Good enough in practice but the LLM occasionally misses.
 
 ---
 
-Construido por [sebpost2](https://github.com/sebpost2) como pieza de portafolio de automatización IA. Fuentes: [getonboard](https://www.getonbrd.com), [RemoteOK](https://remoteok.com) (gracias por su API pública).
+Built by [sebpost2](https://github.com/sebpost2) as an AI-automation portfolio piece. Sources: [getonboard](https://www.getonbrd.com), [RemoteOK](https://remoteok.com) (thanks for the public API).
