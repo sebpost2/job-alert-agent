@@ -27,12 +27,29 @@ include = ["job_alert*"]
 [tool.pytest.ini_options]
 minversion = "8.0"
 testpaths = ["tests"]
-addopts = "-q --strict-markers --strict-config"
+addopts = "-q --strict-markers --strict-config --cov --cov-report=term-missing --cov-fail-under=90"
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
   "error",
   "ignore::DeprecationWarning:asyncpg.*",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["job_alert"]
+omit = [
+  "job_alert/__main__.py",   # thin CLI dispatcher exercised by integration runs
+  "job_alert/logging_setup.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_also = [
+  "if __name__ == .__main__.:",
+  "pragma: no cover",
+  "raise NotImplementedError",
 ]
 
 [tool.mypy]

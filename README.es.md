@@ -38,7 +38,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
 - **Throttle inteligente del rate limit**: respeta los 6000 TPM del free tier de Groq con un intervalo mínimo entre llamadas, manteniendo el sistema en cuota sin caer.
 - **CV-aware**: el system prompt incluye un resumen estructurado del candidato (stack, seniority, geo, idioma) — el LLM no califica "es un buen rol" en abstracto, califica "encaja con ESTE candidato".
 - **Dos comandos, una arquitectura**: `python -m job_alert scrape` + `score` (cada 12h) y `digest` (diario 8am Lima). Componibles, testeables individualmente.
-- **Probado a fondo**: [113 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~3s sin red ni DB.
+- **Probado a fondo**: [113 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), **96% de cobertura (líneas+ramas)** con gate al 90% en CI, 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~3s sin red ni DB.
 - **Stack 100% free permanente**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Cero costo, cero trial.
 
 ## Stack
@@ -90,13 +90,13 @@ Autor: [sebpost2](https://github.com/sebpost2)
 
 [![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
 
-Todo el paquete está cubierto por **113 tests de [`pytest`](./tests)** y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre ambos en cada push y PR — haz click en el badge para ver el último run.
+Todo el paquete está cubierto por **113 tests de [`pytest`](./tests)** con **96% de cobertura ([líneas+ramas](./pyproject.toml))** — el gate en CI rompe el build si baja del 90% — y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre los tres en cada push y PR — haz click en el badge para ver el último run (el log imprime `Required test coverage of 90% reached. Total coverage: 96.xx%`).
 
 ```bash
 pip install -r requirements-dev.txt
 
 python -m mypy        # type checking estricto, cero errores requeridos
-python -m pytest      # 113 tests, ~3 segundos
+python -m pytest      # 113 tests + reporte de coverage, ~4 segundos
 ```
 
 Layout (cada archivo bajo [`tests/`](./tests) es navegable en GitHub):
