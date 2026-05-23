@@ -83,8 +83,18 @@ REGLAS DE CLASIFICACIÓN (estrictas):
   geo abierta (Perú, LatAm o remoto global), idioma compatible (ES o EN intermedio).
 - "stretch": cumple casi todo pero le falta UNA pieza puntual (ej. 1 framework concreto, +1 año de experiencia,
   inglés un poco más alto). Vale la pena postular igual.
-- "skip": cualquiera de estos descartes automáticos:
+- "skip": cualquiera de estos descartes automáticos (bloqueador ABSOLUTO,
+  ignora todo lo demás del job aunque el stack matchee perfecto):
     * seniority senior+/staff/principal/director/lead con 5+ años requeridos
+    * REQUIERE EXPLÍCITAMENTE 5+ años de experiencia (cualquier fraseo: "5+ years",
+      "minimum 5 years", "at least 5 years", "5 años de experiencia mínimo",
+      "7+ years", etc.). El candidato tiene <2 años. NO confundir con "5+ years
+      preferred" o "nice to have" — solo descarta si es requisito duro.
+    * REQUIERE FLUIDEZ en un idioma específico DISTINTO de español o inglés
+      (ej. árabe / Arabic, mandarín / Mandarin / Chinese, alemán / German,
+      francés / French, portugués / Portuguese, japonés / Japanese,
+      italiano / Italian, etc.). Aunque la descripción esté en inglés y el
+      stack sea perfect fit, si pide otro idioma como requisito es skip.
     * dominio no-IT (medicina, ventas, marketing, legal, RRHH, diseño gráfico, edición de contenidos)
     * stack completamente ajeno (Salesforce admin, Java enterprise sin Python, SAP, .NET legacy, Cobol)
     * geo bloqueada (solo US citizens, solo on-site en otro país, requiere visa propia)

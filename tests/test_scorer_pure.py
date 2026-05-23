@@ -91,3 +91,42 @@ def test_system_prompt_includes_cv_and_keywords() -> None:
         assert kw in prompt, f"keyword {kw} must appear in the prompt"
     assert JSON_SHAPE_HINT in prompt
     assert '"fit_score"' in prompt and '"verdict"' in prompt
+
+
+def test_system_prompt_hard_skips_explicit_years_requirement() -> None:
+    """Lock down the post-audit fix: Benchling (7+ years) was scored as fit
+    before this rule was added. The LLM must be told to descard regardless
+    of stack match when 5+ years is a hard requirement, but NOT when it's
+    just "preferred"/"nice to have"."""
+    prompt = _system_prompt(("python",))
+    assert "5+ años de experiencia" in prompt or "5+ years" in prompt
+    # The "preferred / nice to have" carve-out must be present so the LLM
+    # doesn't over-skip jobs that mention experience aspirationally.
+    assert "preferred" in prompt.lower() or "nice to have" in prompt.lower()
+
+
+@pytest.mark.parametrize(
+    "language_token",
+    [
+        "árabe",
+        "arabic",
+        "mandarín",
+        "mandarin",
+        "alemán",
+        "german",
+        "francés",
+        "french",
+        "portugués",
+        "portuguese",
+        "japonés",
+        "japanese",
+    ],
+)
+def test_system_prompt_hard_skips_specific_non_es_en_languages(
+    language_token: str,
+) -> None:
+    """Lock down the post-audit fix: Cohere (Arabic required) was scored as
+    fit before this rule. The prompt must enumerate enough examples that the
+    model learns the pattern instead of trying to interpret one phrase."""
+    prompt = _system_prompt(("python",)).lower()
+    assert language_token.lower() in prompt
