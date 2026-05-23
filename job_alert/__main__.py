@@ -13,6 +13,7 @@ import argparse
 import asyncio
 import logging
 import sys
+from pathlib import Path
 
 # Usar el trust store del sistema (Windows incluye CAs corporativas/AV, Linux usa certifi-equivalente).
 # Debe importarse antes que cualquier librería que abra TLS.
@@ -152,11 +153,58 @@ async def cmd_pipeline() -> int:
     return await cmd_score()
 
 
+def _data_dir() -> Path:
+    d = Path("data")
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _latest_parquet() -> Path | None:
+    candidates = sorted(_data_dir().glob("jobs_*.parquet"))
+    return candidates[-1] if candidates else None
+
+
+async def cmd_analytics_export() -> int:
+    from . import config as config_mod
+    from .analytics import export as exporter
+
+    cfg = config_mod.load()
+    path, count = await exporter.snapshot_to_parquet(cfg, _data_dir())
+    log.info("analytics-export: %d rows → %s", count, path)
+    return 0
+
+
+async def cmd_analytics_quality() -> int:
+    from .analytics import quality
+
+    path = _latest_parquet()
+    if path is None:
+        log.error("analytics-quality: no snapshot found; run analytics-export first")
+        return 1
+    report = quality.check_parquet(path)
+    print(quality.render_report(report))
+    return 0 if report.all_valid else 2
+
+
+async def cmd_analytics_report() -> int:
+    from .analytics import analyze
+
+    path = _latest_parquet()
+    if path is None:
+        log.error("analytics-report: no snapshot found; run analytics-export first")
+        return 1
+    print(analyze.render_report(path))
+    return 0
+
+
 COMMANDS = {
     "scrape": cmd_scrape,
     "score": cmd_score,
     "digest": cmd_digest,
     "pipeline": cmd_pipeline,
+    "analytics-export": cmd_analytics_export,
+    "analytics-quality": cmd_analytics_quality,
+    "analytics-report": cmd_analytics_report,
 }
 
 

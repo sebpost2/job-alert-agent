@@ -38,7 +38,8 @@ Autor: [sebpost2](https://github.com/sebpost2)
 - **Throttle inteligente del rate limit**: respeta los 6000 TPM del free tier de Groq con un intervalo mínimo entre llamadas, manteniendo el sistema en cuota sin caer.
 - **CV-aware**: el system prompt incluye un resumen estructurado del candidato (stack, seniority, geo, idioma) — el LLM no califica "es un buen rol" en abstracto, califica "encaja con ESTE candidato".
 - **Dos comandos, una arquitectura**: `python -m job_alert scrape` + `score` (cada 12h) y `digest` (diario 8am Lima). Componibles, testeables individualmente.
-- **Probado a fondo**: [113 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), **96% de cobertura (líneas+ramas)** con gate al 90% en CI, 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~3s sin red ni DB.
+- **Probado a fondo**: [168 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), **97% de cobertura (líneas+ramas)** con gate al 90% en CI, 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~4s sin red ni DB.
+- **Analytics + data quality offline**: `analytics-export` snapshotea la tabla `jobs` a Parquet, DuckDB hace queries sobre el archivo en place (fit rate por fuente, distribución de scores, top companies), y un schema pydantic detecta filas que violan invariantes del dominio — todo bajo el mismo gate de mypy strict + coverage.
 - **Stack 100% free permanente**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Cero costo, cero trial.
 
 ## Stack
@@ -53,6 +54,9 @@ Autor: [sebpost2](https://github.com/sebpost2)
 | LLM SDK | `groq` oficial |
 | Notion | API HTTP directa via `httpx` |
 | Telegram | Bot API directa via `httpx` |
+| Formato de snapshot | Apache Parquet via `pyarrow` |
+| Motor analytics | DuckDB (in-memory, lee Parquet en place) |
+| Data quality | `pydantic` v2 con model validators custom |
 | Trust store TLS | `truststore` (usa sistema, no certifi) |
 | Orquestación | GitHub Actions cron |
 
@@ -86,11 +90,47 @@ Autor: [sebpost2](https://github.com/sebpost2)
                              └─────────────────────────────────────┘
 ```
 
+## Analytics y data quality
+
+Una segunda pipeline, offline, vive bajo [`job_alert/analytics/`](./job_alert/analytics) para inspeccionar los datos scrapeados sin tocar la DB en vivo:
+
+```bash
+python -m job_alert analytics-export    # snapshot Postgres → data/jobs_YYYYMMDD.parquet
+python -m job_alert analytics-quality   # valida el último snapshot con pydantic
+python -m job_alert analytics-report    # queries DuckDB: fit rate, distribución, top companies
+```
+
+- **`export.py`** escribe la tabla `jobs` completa como Parquet con un schema pyarrow explícito (sin inferencia de tipos; los drifts se notan al toque).
+- **`schema.py`** define el modelo pydantic v2 `JobRow` cuyos `model_validator`s codifican invariantes del dominio — fit_score en `[0,100]`, verdict en `{fit,stretch,skip}`, scoring atómico (fit_score/verdict/scored_at todos seteados o todos null), `notified_at` solo en `fit` y nunca antes de `scored_at`, `posted_date` no en el futuro.
+- **`quality.py`** lee el Parquet y valida cada fila contra `JobRow`, devolviendo un `QualityReport(total, valid, invalid, errors)` para inspección.
+- **`analyze.py`** corre DuckDB SQL sobre el Parquet en place (`read_parquet(path)` — sin ETL, sin staging) y arma un reporte markdown.
+
+Ejemplo de output de `analytics-report` (datos de fixture):
+
+```
+# Analytics — jobs_20260523.parquet (1247 rows)
+
+## Fit rate by source
+| source     | total | fit | stretch | skip | unscored | fit_rate |
+| getonboard |   650 |  78 |     145 |  427 |        0 |  12.00%  |
+| remoteok   |   597 |  42 |      89 |  466 |        0 |   7.04%  |
+
+## Score distribution
+| bucket   | count |
+| 80-100   |    22 |
+| 60-80    |    98 |
+| 40-60    |   178 |
+| 20-40    |   239 |
+| 0-20     |   654 |
+```
+
+Decisión de diseño: pydantic + DuckDB + Parquet en vez de Great Expectations. GE es config-driven y opinionated para data warehouses de empresa; para un proyecto de portafolio con una sola tabla, definir invariantes como código en pydantic es más simple, queda 100% tipado bajo mypy strict, es más fácil de testear, y demuestra entender el patrón de validación en sí mismo (que transfiere a FastAPI, LangChain, OpenAI SDK, etc.) en vez de la configuración de una herramienta específica.
+
 ## Tests y type checking
 
 [![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
 
-Todo el paquete está cubierto por **113 tests de [`pytest`](./tests)** con **96% de cobertura ([líneas+ramas](./pyproject.toml))** — el gate en CI rompe el build si baja del 90% — y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre los tres en cada push y PR — haz click en el badge para ver el último run (el log imprime `Required test coverage of 90% reached. Total coverage: 96.xx%`).
+Todo el paquete está cubierto por **168 tests de [`pytest`](./tests)** con **97% de cobertura ([líneas+ramas](./pyproject.toml))** — el gate en CI rompe el build si baja del 90% — y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre los tres en cada push y PR — haz click en el badge para ver el último run (el log imprime `Required test coverage of 90% reached. Total coverage: 97.xx%`).
 
 ```bash
 pip install -r requirements-dev.txt
@@ -112,6 +152,11 @@ tests/
 ├── test_notion_sync_http.py          # flujo completo de sync con HTTP mockeado por respx
 ├── test_telegram_format.py           # escape HTML + layout del digest
 ├── test_telegram_digest_http.py      # send_digest con respx
+├── analytics/
+│   ├── test_schema.py                # pydantic JobRow — cada invariante con su test
+│   ├── test_export.py                # Postgres → Parquet, schema lock + roundtrip
+│   ├── test_analyze.py               # queries DuckDB sobre Parquet de fixture
+│   └── test_quality.py               # reporte de validación sobre datos válidos/inválidos
 └── sources/
     ├── test_getonboard_normalize.py  # JSON → dict canónico de job
     ├── test_getonboard_http.py       # fetch paginado con respx
@@ -212,6 +257,11 @@ En GitHub Actions estos van en `Settings → Secrets and variables → Actions`.
 │   ├── scorer.py        # Groq con json_object + throttle
 │   ├── notion_sync.py   # upsert via httpx → Notion API
 │   ├── telegram_digest.py
+│   ├── analytics/
+│   │   ├── schema.py    # pydantic JobRow + invariantes de data quality
+│   │   ├── export.py    # snapshot Postgres → Parquet (pyarrow)
+│   │   ├── quality.py   # valida filas del Parquet contra JobRow
+│   │   └── analyze.py   # queries DuckDB + reporte markdown
 │   └── sources/
 │       ├── getonboard.py
 │       └── remoteok.py

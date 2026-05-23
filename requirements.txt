@@ -6,3 +6,8 @@ python-dotenv>=1.0
 groq>=0.11
 notion-client>=2.2
 truststore>=0.10
+pydantic>=2.6
+pyarrow>=15.0
+duckdb>=0.10
+# Windows ships no IANA tz data; pyarrow needs it to round-trip TIMESTAMPTZ.
+tzdata>=2024.1; sys_platform == 'win32'
