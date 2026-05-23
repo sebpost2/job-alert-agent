@@ -6,6 +6,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from html import unescape
+from typing import Any
 
 import httpx
 
@@ -30,7 +31,7 @@ def _strip_html(html: str | None) -> str:
     return unescape(text).strip()
 
 
-def _normalize(item: dict) -> dict | None:
+def _normalize(item: dict[str, Any]) -> dict[str, Any] | None:
     try:
         attrs = item["attributes"]
         company_data = (attrs.get("company") or {}).get("data") or {}
@@ -40,6 +41,7 @@ def _normalize(item: dict) -> dict | None:
         description = "\n\n".join(t for t in (_strip_html(s) for s in sections) if t)
 
         countries = attrs.get("countries") or []
+        location: str | None
         if attrs.get("remote"):
             location = (
                 "Remote"
@@ -79,10 +81,10 @@ async def fetch(
     client: httpx.AsyncClient,
     *,
     max_per_category: int = 20,
-) -> list[dict]:
+) -> list[dict[str, Any]]:
     """Trae jobs de las categorías relevantes. Returns lista de dicts normalizados."""
 
-    jobs: list[dict] = []
+    jobs: list[dict[str, Any]] = []
     seen: set[str] = set()
 
     for category in CATEGORIES:

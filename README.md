@@ -4,6 +4,7 @@
 
 # Job Alert Agent
 
+[![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
 [![scrape + score](https://github.com/sebpost2/job-alert-agent/actions/workflows/pipeline.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/pipeline.yml)
 [![daily digest](https://github.com/sebpost2/job-alert-agent/actions/workflows/digest.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/digest.yml)
 
@@ -37,6 +38,7 @@ Author: [sebpost2](https://github.com/sebpost2)
 - **Smart rate-limit throttle**: respects Groq's free-tier 6000 TPM with a minimum interval between calls, keeping the system inside quota without crashing.
 - **CV-aware**: the system prompt includes a structured candidate summary (stack, seniority, geo, language) — the LLM doesn't score "is this a good role" in the abstract, it scores "does it fit THIS candidate".
 - **Two commands, one architecture**: `python -m job_alert scrape` + `score` (every 12h) and `digest` (daily 8am Lima). Composable, individually testable.
+- **Battle-tested**: [113 unit + integration tests](./tests) under [`pytest`](./pyproject.toml), 100% typed under [`mypy --strict`](./pyproject.toml), enforced on every push by [GitHub Actions CI](./.github/workflows/ci.yml). Suite runs in ~3s with zero network and zero DB.
 - **100% permanently free stack**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Zero cost, zero trial.
 
 ## Stack
@@ -83,6 +85,44 @@ Author: [sebpost2](https://github.com/sebpost2)
                              │       Telegram bot (HTML parse_mode)│
                              └─────────────────────────────────────┘
 ```
+
+## Tests & type checking
+
+[![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
+
+The whole package is covered by **113 [`pytest`](./tests) tests** and type-checked under **[`mypy --strict`](./pyproject.toml)**. The [CI workflow](./.github/workflows/ci.yml) runs both on every push and PR — click the badge to see the latest run.
+
+```bash
+pip install -r requirements-dev.txt
+
+python -m mypy        # strict type checking, zero errors required
+python -m pytest      # 113 tests, ~3 seconds
+```
+
+Layout (every file under [`tests/`](./tests) is browsable on GitHub):
+
+```
+tests/
+├── conftest.py                       # shared Config fixture
+├── test_config.py                    # env-var loading + validation
+├── test_scorer_pure.py               # hard-skip regex + prompt assembly
+├── test_scorer_llm.py                # Groq client mocked with AsyncMock
+├── test_db.py                        # asyncpg.Connection mocked, SQL shape verified
+├── test_notion_sync_pure.py          # property builder for Notion pages
+├── test_notion_sync_http.py          # full sync flow with respx-mocked HTTP
+├── test_telegram_format.py           # HTML escaping + digest layout
+├── test_telegram_digest_http.py      # send_digest with respx
+└── sources/
+    ├── test_getonboard_normalize.py  # JSON → canonical job dict
+    ├── test_getonboard_http.py       # paginated fetch with respx
+    ├── test_remoteok_normalize.py
+    └── test_remoteok_http.py
+```
+
+Design choices:
+- **No real DB or network in CI** — `asyncpg.Connection` is replaced with `AsyncMock`, HTTP is mocked with `respx`, Groq is mocked by patching `AsyncGroq`. The suite runs deterministically in ~3 seconds on a free GitHub Actions runner.
+- **mypy strict from day one** — `disallow_untyped_decorators`, `no_implicit_reexport`, `warn_return_any` all on. Third-party untyped modules (`asyncpg`, `truststore`, `respx`) are explicitly allow-listed in `pyproject.toml`.
+- **Tests are the spec for normalizers** — every field the scraper writes to Postgres is asserted, so silent schema drift breaks CI before it hits production.
 
 ## Design decisions
 

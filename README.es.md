@@ -4,6 +4,7 @@
 
 # Job Alert Agent
 
+[![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
 [![scrape + score](https://github.com/sebpost2/job-alert-agent/actions/workflows/pipeline.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/pipeline.yml)
 [![daily digest](https://github.com/sebpost2/job-alert-agent/actions/workflows/digest.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/digest.yml)
 
@@ -37,6 +38,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
 - **Throttle inteligente del rate limit**: respeta los 6000 TPM del free tier de Groq con un intervalo mínimo entre llamadas, manteniendo el sistema en cuota sin caer.
 - **CV-aware**: el system prompt incluye un resumen estructurado del candidato (stack, seniority, geo, idioma) — el LLM no califica "es un buen rol" en abstracto, califica "encaja con ESTE candidato".
 - **Dos comandos, una arquitectura**: `python -m job_alert scrape` + `score` (cada 12h) y `digest` (diario 8am Lima). Componibles, testeables individualmente.
+- **Probado a fondo**: [113 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~3s sin red ni DB.
 - **Stack 100% free permanente**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Cero costo, cero trial.
 
 ## Stack
@@ -83,6 +85,44 @@ Autor: [sebpost2](https://github.com/sebpost2)
                              │       Telegram bot (HTML parse_mode)│
                              └─────────────────────────────────────┘
 ```
+
+## Tests y type checking
+
+[![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
+
+Todo el paquete está cubierto por **113 tests de [`pytest`](./tests)** y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre ambos en cada push y PR — haz click en el badge para ver el último run.
+
+```bash
+pip install -r requirements-dev.txt
+
+python -m mypy        # type checking estricto, cero errores requeridos
+python -m pytest      # 113 tests, ~3 segundos
+```
+
+Layout (cada archivo bajo [`tests/`](./tests) es navegable en GitHub):
+
+```
+tests/
+├── conftest.py                       # Config fixture compartido
+├── test_config.py                    # carga + validación de env vars
+├── test_scorer_pure.py               # regex hard-skip + armado del prompt
+├── test_scorer_llm.py                # cliente Groq mockeado con AsyncMock
+├── test_db.py                        # asyncpg.Connection mockeado, shape de SQL verificado
+├── test_notion_sync_pure.py          # builder de propiedades para Notion
+├── test_notion_sync_http.py          # flujo completo de sync con HTTP mockeado por respx
+├── test_telegram_format.py           # escape HTML + layout del digest
+├── test_telegram_digest_http.py      # send_digest con respx
+└── sources/
+    ├── test_getonboard_normalize.py  # JSON → dict canónico de job
+    ├── test_getonboard_http.py       # fetch paginado con respx
+    ├── test_remoteok_normalize.py
+    └── test_remoteok_http.py
+```
+
+Decisiones de diseño:
+- **Sin DB real ni red en CI** — `asyncpg.Connection` se reemplaza por `AsyncMock`, HTTP se mockea con `respx`, Groq se mockea parcheando `AsyncGroq`. El suite corre determinístico en ~3 segundos en un runner gratis de GitHub Actions.
+- **mypy strict desde el día uno** — `disallow_untyped_decorators`, `no_implicit_reexport`, `warn_return_any` todos activos. Módulos terceros sin tipado (`asyncpg`, `truststore`, `respx`) están allow-listed explícitamente en `pyproject.toml`.
+- **Los tests son la spec de los normalizers** — cada campo que el scraper escribe a Postgres está aserto, así que un drift silencioso de schema rompe CI antes de llegar a producción.
 
 ## Decisiones de diseño
 

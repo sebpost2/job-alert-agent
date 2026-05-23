@@ -7,8 +7,10 @@ import json
 import logging
 import re
 from dataclasses import dataclass
+from typing import Any, cast
 
 from groq import AsyncGroq
+from groq.types.chat import ChatCompletionMessageParam
 
 from .config import Config
 from .cv_summary import CV_SUMMARY
@@ -22,15 +24,18 @@ RESPONSE_FORMAT = {"type": "json_object"}
 
 # Patrones que NO son software dev / IA y aparecen en getonboard. Si matchean
 # en el título, no gastamos un call a Groq y los marcamos skip directo.
+# Stems like `enfermer`, `psic[oó]log`, `abogad`, `contador` should also catch
+# their inflected forms ("enfermera", "psicóloga", "abogados", "contadora"),
+# so word stems use \w* before the final \b.
 HARD_SKIP_TITLE_PATTERNS = re.compile(
     r"\b("
-    r"m[eé]dic[oa]|enfermer|doctor|cl[ií]nic|psic[oó]log|"
-    r"contador|abogad|legal counsel|"
-    r"redactor|editor m[eé]dic|copywriter|"
+    r"m[eé]dic[oa]\w*|enfermer\w*|doctor\w*|cl[ií]nic\w*|psic[oó]log\w*|"
+    r"contador\w*|abogad\w*|legal counsel|"
+    r"redactor\w*|editor m[eé]dic\w*|copywriter|"
     r"community manager|social media|growth manager|"
     r"ventas|sales(?!force)|comercial|account executive|"
-    r"recursos humanos|hr business|talent acquisition|reclutador|"
-    r"dise[ñn]ador gr[áa]fico|graphic designer|"
+    r"recursos humanos|hr business|talent acquisition|reclutador\w*|"
+    r"dise[ñn]ador\w* gr[áa]fic\w*|graphic designer|"
     r"chef|cocinero|barista"
     r")\b",
     re.IGNORECASE,
@@ -121,13 +126,14 @@ Ubicación: {location or "(no especificada)"}
 Descripción:
 {desc or "(sin descripción)"}"""
 
+    messages: list[ChatCompletionMessageParam] = [
+        {"role": "system", "content": _system_prompt(keywords)},
+        {"role": "user", "content": user_msg},
+    ]
     response = await client.chat.completions.create(
         model=MODEL,
-        messages=[
-            {"role": "system", "content": _system_prompt(keywords)},
-            {"role": "user", "content": user_msg},
-        ],
-        response_format=RESPONSE_FORMAT,
+        messages=messages,
+        response_format=cast(Any, RESPONSE_FORMAT),
         temperature=0.2,
     )
     raw = response.choices[0].message.content or "{}"
@@ -142,7 +148,7 @@ Descripción:
 
 async def score_batch(
     config: Config,
-    jobs: list[dict],
+    jobs: list[dict[str, Any]],
     *,
     min_interval_sec: float = 8.0,
 ) -> list[tuple[int, ScoreResult | Exception]]:

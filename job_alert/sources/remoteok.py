@@ -6,6 +6,7 @@ import logging
 import re
 from datetime import datetime, timezone
 from html import unescape
+from typing import Any
 
 import httpx
 
@@ -26,7 +27,7 @@ def _strip_html(html: str | None) -> str:
     return unescape(text).strip()
 
 
-def _normalize(item: dict) -> dict | None:
+def _normalize(item: dict[str, Any]) -> dict[str, Any] | None:
     try:
         url = item.get("url")
         title = (item.get("position") or "").strip()
@@ -62,7 +63,9 @@ def _normalize(item: dict) -> dict | None:
         return None
 
 
-async def fetch(client: httpx.AsyncClient, *, max_jobs: int = 50) -> list[dict]:
+async def fetch(
+    client: httpx.AsyncClient, *, max_jobs: int = 50
+) -> list[dict[str, Any]]:
     """Trae jobs recientes de RemoteOK. El endpoint devuelve ~100 por request."""
 
     log.info("remoteok: fetching feed")
@@ -82,7 +85,7 @@ async def fetch(client: httpx.AsyncClient, *, max_jobs: int = 50) -> list[dict]:
     # La primera entrada es un "legal" / TOS, no un job — la saltamos.
     jobs_raw = [e for e in entries if isinstance(e, dict) and "id" in e]
 
-    jobs: list[dict] = []
+    jobs: list[dict[str, Any]] = []
     for item in jobs_raw[:max_jobs]:
         normalized = _normalize(item)
         if normalized:

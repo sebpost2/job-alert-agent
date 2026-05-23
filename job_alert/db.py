@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime
-from typing import Any, AsyncIterator
+from typing import Any, AsyncIterator, cast
 
 import asyncpg
 
@@ -28,7 +28,9 @@ async def connection(config: Config) -> AsyncIterator[asyncpg.Connection]:
         await conn.close()
 
 
-async def upsert_jobs(conn: asyncpg.Connection, jobs: list[dict]) -> tuple[int, int]:
+async def upsert_jobs(
+    conn: asyncpg.Connection, jobs: list[dict[str, Any]]
+) -> tuple[int, int]:
     """Inserta jobs nuevos. Para los que ya existen (mismo url) no hace nada.
 
     Returns (inserted, skipped).
@@ -65,7 +67,7 @@ async def fetch_unscored(
     conn: asyncpg.Connection, *, limit: int = 50
 ) -> list[asyncpg.Record]:
     """Devuelve jobs aún no calificados, más recientes primero."""
-    return await conn.fetch(
+    rows = await conn.fetch(
         """
         SELECT id, source, url, title, company, location, posted_date, raw_description
         FROM jobs
@@ -75,6 +77,7 @@ async def fetch_unscored(
         """,
         limit,
     )
+    return cast(list[asyncpg.Record], rows)
 
 
 async def save_score(
@@ -105,7 +108,7 @@ async def fetch_undigested_fits(
     conn: asyncpg.Connection, *, min_score: int, limit: int
 ) -> list[asyncpg.Record]:
     """Jobs marcados 'fit' con score >= min y aún no notificados."""
-    return await conn.fetch(
+    rows = await conn.fetch(
         """
         SELECT id, source, url, title, company, location, posted_date,
                fit_score, reason
@@ -119,6 +122,7 @@ async def fetch_undigested_fits(
         min_score,
         limit,
     )
+    return cast(list[asyncpg.Record], rows)
 
 
 async def mark_notified(conn: asyncpg.Connection, ids: list[int]) -> None:
