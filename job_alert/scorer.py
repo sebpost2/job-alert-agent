@@ -14,6 +14,7 @@ from groq.types.chat import ChatCompletionMessageParam
 
 from .config import Config
 from .cv_summary import CV_SUMMARY
+from .i18n import MESSAGES, Lang
 
 log = logging.getLogger(__name__)
 
@@ -60,49 +61,18 @@ def _hard_skip_reason(title: str) -> str | None:
     return None
 
 
-JSON_SHAPE_HINT = """\
-Tu respuesta DEBE ser JSON con exactamente este shape:
-{
-  "fit_score": <int 0-100>,
-  "verdict": "<fit | stretch | skip>",
-  "reason": "<1-2 sentences in English, concrete, max 280 chars>"
-}
-Sin texto extra, sin markdown, solo el objeto JSON."""
+# Backward-compat alias: the default-language (es) JSON shape hint, kept so
+# callers/tests importing this symbol keep working. Source of truth: i18n.py.
+JSON_SHAPE_HINT = MESSAGES["es"]["json_shape_hint"].format()
 
 
-def _system_prompt(keywords: tuple[str, ...]) -> str:
-    return f"""Eres un evaluador estricto de ofertas laborales para este candidato.
-
-{CV_SUMMARY}
-
-Keywords del candidato (boost si aparecen): {", ".join(keywords)}
-
-REGLAS DE CLASIFICACIÓN (estrictas):
-- "fit": el candidato puede aplicar HOY con probabilidad razonable de pasar filtro inicial.
-  Requiere: seniority junior o semi-senior, stack que ya maneja (Python / Odoo / Laravel / Vue / SQL / Docker / Git),
-  geo abierta (Perú, LatAm o remoto global), idioma compatible (ES o EN intermedio).
-- "stretch": cumple casi todo pero le falta UNA pieza puntual (ej. 1 framework concreto, +1 año de experiencia,
-  inglés un poco más alto). Vale la pena postular igual.
-- "skip": cualquiera de estos descartes automáticos (bloqueador ABSOLUTO,
-  ignora todo lo demás del job aunque el stack matchee perfecto):
-    * seniority senior+/staff/principal/director/lead con 5+ años requeridos
-    * REQUIERE EXPLÍCITAMENTE 5+ años de experiencia (cualquier fraseo: "5+ years",
-      "minimum 5 years", "at least 5 years", "5 años de experiencia mínimo",
-      "7+ years", etc.). El candidato tiene <2 años. NO confundir con "5+ years
-      preferred" o "nice to have" — solo descarta si es requisito duro.
-    * REQUIERE FLUIDEZ en un idioma específico DISTINTO de español o inglés
-      (ej. árabe / Arabic, mandarín / Mandarin / Chinese, alemán / German,
-      francés / French, portugués / Portuguese, japonés / Japanese,
-      italiano / Italian, etc.). Aunque la descripción esté en inglés y el
-      stack sea perfect fit, si pide otro idioma como requisito es skip.
-    * dominio no-IT (medicina, ventas, marketing, legal, RRHH, diseño gráfico, edición de contenidos)
-    * stack completamente ajeno (Salesforce admin, Java enterprise sin Python, SAP, .NET legacy, Cobol)
-    * geo bloqueada (solo US citizens, solo on-site en otro país, requiere visa propia)
-    * roles de management puro sin componente técnico
-
-Razón SIEMPRE concreta: cita el match o el descarte específico, no escribas frases genéricas.
-
-{JSON_SHAPE_HINT}"""
+def _system_prompt(keywords: tuple[str, ...], lang: Lang = "es") -> str:
+    s = MESSAGES[lang]
+    return s["system_prompt"].format(
+        cv_summary=CV_SUMMARY,
+        keywords=", ".join(keywords),
+        json_shape_hint=s["json_shape_hint"].format(),
+    )
 
 
 @dataclass(frozen=True)
@@ -121,6 +91,7 @@ async def score_job(
     location: str | None,
     source: str,
     description: str | None,
+    lang: Lang = "es",
 ) -> ScoreResult:
     desc = (description or "").strip()
     if len(desc) > MAX_DESC_CHARS:
@@ -137,7 +108,7 @@ Descripción:
 {desc or "(sin descripción)"}"""
 
     messages: list[ChatCompletionMessageParam] = [
-        {"role": "system", "content": _system_prompt(keywords)},
+        {"role": "system", "content": _system_prompt(keywords, lang)},
         {"role": "user", "content": user_msg},
     ]
     response = await client.chat.completions.create(
@@ -200,6 +171,7 @@ async def score_batch(
                     location=job.get("location"),
                     source=job["source"],
                     description=job.get("raw_description"),
+                    lang=config.lang,
                 )
                 out.append((job["id"], result))
                 log.info(

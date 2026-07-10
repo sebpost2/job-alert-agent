@@ -24,4 +24,5 @@ def config() -> Config:
         keywords=("python", "ai", "remote"),
         digest_top_n=3,
         min_fit_score=60,
+        lang="es",
     )

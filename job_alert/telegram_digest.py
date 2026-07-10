@@ -9,6 +9,7 @@ from typing import Any
 import httpx
 
 from .config import Config
+from .i18n import MESSAGES, Lang
 
 log = logging.getLogger(__name__)
 
@@ -18,11 +19,12 @@ def _esc(text: str) -> str:
     return html.escape(text or "", quote=False)
 
 
-def _format_message(jobs: list[dict[str, Any]]) -> str:
+def _format_message(jobs: list[dict[str, Any]], lang: Lang = "es") -> str:
+    s = MESSAGES[lang]
     if not jobs:
-        return "🤖 <b>Job Alert</b>\n\nNo hay nuevos fits hoy. ✅"
+        return s["no_fits"]
 
-    lines = [f"🤖 <b>Job Alert</b> — top {len(jobs)} fit(s):\n"]
+    lines = [s["top_fits"].format(n=len(jobs))]
     for i, job in enumerate(jobs, start=1):
         title = _esc(job["title"][:100])
         company = _esc(job.get("company") or "?")
@@ -35,18 +37,16 @@ def _format_message(jobs: list[dict[str, Any]]) -> str:
         lines.append(
             f"<b>{i}. {title}</b>\n"
             f"  · {company} · {location}\n"
-            f"  · fit <code>{score}/100</code> · vía {source}\n"
+            f'  · fit <code>{score}/100</code> · {s["via"]} {source}\n'
             f"  · <i>{reason}</i>\n"
-            f'  · <a href="{url}">Ver oferta</a>'
+            f'  · <a href="{url}">{s["view_offer"]}</a>'
         )
-    lines.append(
-        "\n<i>Fuentes: getonboard + remoteok. Powered by Groq llama-3.1-8b-instant.</i>"
-    )
+    lines.append(s["sources"])
     return "\n\n".join(lines)
 
 
 async def send_digest(config: Config, jobs: list[dict[str, Any]]) -> bool:
-    text = _format_message(jobs)
+    text = _format_message(jobs, config.lang)
     url = f"https://api.telegram.org/bot{config.telegram_token}/sendMessage"
 
     async with httpx.AsyncClient(timeout=20) as client:
