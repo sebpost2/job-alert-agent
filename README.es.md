@@ -38,7 +38,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
 - **Throttle inteligente del rate limit**: respeta los 6000 TPM del free tier de Groq con un intervalo mínimo entre llamadas, manteniendo el sistema en cuota sin caer.
 - **CV-aware**: el system prompt incluye un resumen estructurado del candidato (stack, seniority, geo, idioma) — el LLM no califica "es un buen rol" en abstracto, califica "encaja con ESTE candidato".
 - **Dos comandos, una arquitectura**: `python -m job_alert scrape` + `score` (cada 12h) y `digest` (diario 8am Lima). Componibles, testeables individualmente.
-- **Probado a fondo**: [168 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), **97% de cobertura (líneas+ramas)** con gate al 90% en CI, 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~4s sin red ni DB.
+- **Probado a fondo**: [181 tests unitarios + integración](./tests) con [`pytest`](./pyproject.toml), **97% de cobertura (líneas+ramas)** con gate al 90% en CI, 100% tipado bajo [`mypy --strict`](./pyproject.toml), validado en cada push por [GitHub Actions CI](./.github/workflows/ci.yml). El suite corre en ~4s sin red ni DB.
 - **Analytics + data quality offline**: `analytics-export` snapshotea la tabla `jobs` a Parquet, DuckDB hace queries sobre el archivo en place (fit rate por fuente, distribución de scores, top companies), y un schema pydantic detecta filas que violan invariantes del dominio — todo bajo el mismo gate de mypy strict + coverage.
 - **Stack 100% free permanente**: GitHub Actions cron + Neon Postgres + Groq LLM + Notion API + Telegram bot. Cero costo, cero trial.
 
@@ -46,7 +46,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
 
 | Capa | Tecnología |
 |---|---|
-| Lenguaje | Python 3.12+ |
+| Lenguaje | Python 3.11+ |
 | HTTP | `httpx` (async) |
 | Base de datos | PostgreSQL (Neon, serverless) |
 | Driver DB | `asyncpg` |
@@ -130,13 +130,13 @@ Decisión de diseño: pydantic + DuckDB + Parquet en vez de Great Expectations. 
 
 [![ci](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sebpost2/job-alert-agent/actions/workflows/ci.yml)
 
-Todo el paquete está cubierto por **168 tests de [`pytest`](./tests)** con **97% de cobertura ([líneas+ramas](./pyproject.toml))** — el gate en CI rompe el build si baja del 90% — y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre los tres en cada push y PR — haz click en el badge para ver el último run (el log imprime `Required test coverage of 90% reached. Total coverage: 97.xx%`).
+Todo el paquete está cubierto por **181 tests de [`pytest`](./tests)** con **97% de cobertura ([líneas+ramas](./pyproject.toml))** — el gate en CI rompe el build si baja del 90% — y type-checked bajo **[`mypy --strict`](./pyproject.toml)**. El [workflow de CI](./.github/workflows/ci.yml) corre los tres en cada push y PR — haz click en el badge para ver el último run (el log imprime `Required test coverage of 90% reached. Total coverage: 97.xx%`).
 
 ```bash
 pip install -r requirements-dev.txt
 
 python -m mypy        # type checking estricto, cero errores requeridos
-python -m pytest      # 113 tests + reporte de coverage, ~4 segundos
+python -m pytest      # 181 tests + reporte de coverage, ~4 segundos
 ```
 
 Layout (cada archivo bajo [`tests/`](./tests) es navegable en GitHub):

@@ -64,7 +64,7 @@ no_implicit_reexport = true
 disallow_untyped_decorators = true
 
 [[tool.mypy.overrides]]
-module = ["truststore", "respx", "asyncpg", "asyncpg.*"]
+module = ["truststore", "respx", "asyncpg", "asyncpg.*", "pyarrow", "pyarrow.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
