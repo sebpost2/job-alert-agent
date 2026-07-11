@@ -61,4 +61,4 @@ async def test_send_digest_empty_still_sends_heartbeat(config: Config) -> None:
     assert ok is True
     assert route.called
     payload = json.loads(route.calls.last.request.read())
-    assert "No hay nuevos fits hoy" in payload["text"]
+    assert "No new fits today" in payload["text"]

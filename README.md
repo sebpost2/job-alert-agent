@@ -240,7 +240,7 @@ python -m job_alert pipeline   # scrape + score
 | `KEYWORDS` | CSV list of keywords to bias the LLM, e.g. `python,ai,remote` |
 | `DIGEST_TOP_N` | How many fits to include in the digest (default `3`) |
 | `MIN_FIT_SCORE` | Minimum score for a fit to appear in the digest (default `60`) |
-| `JOB_ALERT_LANG` | UI/prompt language, `es` or `en` (default `es`) |
+| `JOB_ALERT_LANG` | UI/prompt language, `en` or `es` (default `en`) |
 
 In GitHub Actions these go under `Settings → Secrets and variables → Actions`. `KEYWORDS` can go as a `Variable` (not a secret).
 

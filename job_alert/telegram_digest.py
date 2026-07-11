@@ -19,7 +19,7 @@ def _esc(text: str) -> str:
     return html.escape(text or "", quote=False)
 
 
-def _format_message(jobs: list[dict[str, Any]], lang: Lang = "es") -> str:
+def _format_message(jobs: list[dict[str, Any]], lang: Lang = "en") -> str:
     s = MESSAGES[lang]
     if not jobs:
         return s["no_fits"]

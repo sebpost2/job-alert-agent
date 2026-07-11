@@ -61,12 +61,12 @@ def _hard_skip_reason(title: str) -> str | None:
     return None
 
 
-# Backward-compat alias: the default-language (es) JSON shape hint, kept so
+# Backward-compat alias: the default-language (en) JSON shape hint, kept so
 # callers/tests importing this symbol keep working. Source of truth: i18n.py.
-JSON_SHAPE_HINT = MESSAGES["es"]["json_shape_hint"].format()
+JSON_SHAPE_HINT = MESSAGES["en"]["json_shape_hint"].format()
 
 
-def _system_prompt(keywords: tuple[str, ...], lang: Lang = "es") -> str:
+def _system_prompt(keywords: tuple[str, ...], lang: Lang = "en") -> str:
     s = MESSAGES[lang]
     return s["system_prompt"].format(
         cv_summary=CV_SUMMARY,
@@ -91,7 +91,7 @@ async def score_job(
     location: str | None,
     source: str,
     description: str | None,
-    lang: Lang = "es",
+    lang: Lang = "en",
 ) -> ScoreResult:
     desc = (description or "").strip()
     if len(desc) > MAX_DESC_CHARS:

@@ -44,7 +44,7 @@ class Config:
 def load() -> Config:
     keywords_raw = _optional("KEYWORDS", "python,ia,remoto")
     keywords = tuple(k.strip().lower() for k in keywords_raw.split(",") if k.strip())
-    lang = normalize_lang(_optional("JOB_ALERT_LANG", "es"))
+    lang = normalize_lang(_optional("JOB_ALERT_LANG", "en"))
 
     return Config(
         database_url=_required("DATABASE_URL", lang),

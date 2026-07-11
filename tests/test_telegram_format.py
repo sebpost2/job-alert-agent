@@ -18,7 +18,7 @@ def test_esc_handles_none_and_special_chars() -> None:
 
 def test_format_empty_jobs_returns_no_fits_message() -> None:
     msg = _format_message([])
-    assert "No hay nuevos fits hoy" in msg
+    assert "No new fits today" in msg
     assert "<b>" in msg
 
 

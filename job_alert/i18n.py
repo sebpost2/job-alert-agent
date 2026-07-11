@@ -6,7 +6,7 @@ tipado), replicando el patrón de diccionarios tipados con paridad de claves que
 uso en mis repos de Next.js.
 
 Selección vía `MESSAGES[lang]`, donde `lang` sale de `JOB_ALERT_LANG`
-(default `"es"`, para no cambiar el comportamiento ya desplegado).
+(default `"en"`).
 """
 
 from __future__ import annotations
@@ -32,8 +32,8 @@ class Strings(TypedDict):
 
 def normalize_lang(raw: str) -> Lang:
     """Normaliza el valor crudo de env a un `Lang`. Cualquier cosa que no sea
-    `"en"` cae a `"es"` para preservar el default histórico."""
-    return "en" if raw.strip().lower() == "en" else "es"
+    `"es"` cae a `"en"` (default)."""
+    return "es" if raw.strip().lower() == "es" else "en"
 
 
 ES: Strings = {

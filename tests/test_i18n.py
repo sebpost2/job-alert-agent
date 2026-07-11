@@ -22,7 +22,7 @@ def test_en_es_have_identical_keys() -> None:
 
 @pytest.mark.parametrize(
     "raw, expected",
-    [("en", "en"), ("EN", "en"), (" en ", "en"), ("es", "es"), ("fr", "es"), ("", "es")],
+    [("en", "en"), ("EN", "en"), (" en ", "en"), ("es", "es"), ("ES", "es"), (" es ", "es"), ("fr", "en"), ("", "en")],
 )
 def test_normalize_lang(raw: str, expected: Lang) -> None:
     assert normalize_lang(raw) == expected
