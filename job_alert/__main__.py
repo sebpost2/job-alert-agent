@@ -105,6 +105,9 @@ async def cmd_digest() -> int:
     from . import telegram_digest
 
     cfg = config_mod.load()
+
+    # Fase 1: leer candidatos y cerrar la conexión antes de la sync de Notion
+    # (puede tardar minutos — no aguantamos conexión Postgres abierta).
     async with db.connection(cfg) as conn:
         # 1. Sincronizar a Notion solo los relevantes (fit + stretch). Los skip
         #    se quedan en Postgres por si se quiere auditar; saturarían la DB.
@@ -119,29 +122,33 @@ async def cmd_digest() -> int:
             """
         )
         jobs_for_notion = [dict(r) for r in relevant]
-        log.info("digest: sincronizando %d jobs (fit+stretch) a Notion", len(jobs_for_notion))
-        created, updated, errors = await notion_sync.sync(cfg, jobs_for_notion)
-        log.info(
-            "digest: notion -> creados=%d actualizados=%d errores=%d",
-            created,
-            updated,
-            errors,
-        )
 
-        # 2. Sacar top N fits no notificados y mandar a Telegram.
+        # 2. Sacar top N fits no notificados para mandar a Telegram.
         rows = await db.fetch_undigested_fits(
             conn, min_score=cfg.min_fit_score, limit=cfg.digest_top_n
         )
         jobs_for_telegram = [dict(r) for r in rows]
-        log.info("digest: %d fits para Telegram", len(jobs_for_telegram))
 
-        if jobs_for_telegram:
-            sent = await telegram_digest.send_digest(cfg, jobs_for_telegram)
-            if sent:
+    # Fase 2: I/O lenta (Notion + Telegram) sin conexión Postgres abierta.
+    log.info("digest: sincronizando %d jobs (fit+stretch) a Notion", len(jobs_for_notion))
+    created, updated, errors = await notion_sync.sync(cfg, jobs_for_notion)
+    log.info(
+        "digest: notion -> creados=%d actualizados=%d errores=%d",
+        created,
+        updated,
+        errors,
+    )
+
+    log.info("digest: %d fits para Telegram", len(jobs_for_telegram))
+    if jobs_for_telegram:
+        sent = await telegram_digest.send_digest(cfg, jobs_for_telegram)
+        if sent:
+            # Fase 3: nueva conexión para marcar como notificados.
+            async with db.connection(cfg) as conn:
                 await db.mark_notified(conn, [j["id"] for j in jobs_for_telegram])
-        else:
-            # Mandar mensaje "sin nuevos fits" igual, para que el usuario sepa que el cron corrió
-            await telegram_digest.send_digest(cfg, [])
+    else:
+        # Mandar mensaje "sin nuevos fits" igual, para que el usuario sepa que el cron corrió
+        await telegram_digest.send_digest(cfg, [])
     return 0
 
 

@@ -61,11 +61,6 @@ def _hard_skip_reason(title: str) -> str | None:
     return None
 
 
-# Backward-compat alias: the default-language (en) JSON shape hint, kept so
-# callers/tests importing this symbol keep working. Source of truth: i18n.py.
-JSON_SHAPE_HINT = MESSAGES["en"]["json_shape_hint"].format()
-
-
 def _system_prompt(keywords: tuple[str, ...], lang: Lang = "en") -> str:
     s = MESSAGES[lang]
     return s["system_prompt"].format(
@@ -97,15 +92,14 @@ async def score_job(
     if len(desc) > MAX_DESC_CHARS:
         desc = desc[:MAX_DESC_CHARS] + " [...]"
 
-    user_msg = f"""Evalúa este job:
-
-Fuente: {source}
-Título: {title}
-Empresa: {company or "(desconocida)"}
-Ubicación: {location or "(no especificada)"}
-
-Descripción:
-{desc or "(sin descripción)"}"""
+    s = MESSAGES[lang]
+    user_msg = s["user_msg"].format(
+        source=source,
+        title=title,
+        company=company or s["unknown_company"],
+        location=location or s["unspecified_location"],
+        desc=desc or s["no_description"],
+    )
 
     messages: list[ChatCompletionMessageParam] = [
         {"role": "system", "content": _system_prompt(keywords, lang)},
@@ -120,9 +114,16 @@ Descripción:
     raw = response.choices[0].message.content or "{}"
     data = json.loads(raw)
 
+    fit_score = int(data["fit_score"])
+    if not 0 <= fit_score <= 100:
+        raise ValueError(f"fit_score out of range 0-100: {fit_score!r}")
+    verdict = str(data["verdict"]).strip().lower()
+    if verdict not in ("fit", "stretch", "skip"):
+        raise ValueError(f"unexpected verdict from LLM: {verdict!r}")
+
     return ScoreResult(
-        fit_score=int(data["fit_score"]),
-        verdict=str(data["verdict"]),
+        fit_score=fit_score,
+        verdict=verdict,
         reason=str(data["reason"]),
     )
 

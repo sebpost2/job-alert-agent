@@ -1,0 +1,27 @@
+........................................................................ [ 37%]
+........................................................................ [ 74%]
+.................................................                        [100%]
+=============================== tests coverage ================================
+______________ coverage: platform win32, python 3.10.11-final-0 _______________
+
+Name                              Stmts   Miss Branch BrPart   Cover   Missing
+------------------------------------------------------------------------------
+job_alert\__init__.py                 1      0      0      0 100.00%
+job_alert\analytics\__init__.py       0      0      0      0 100.00%
+job_alert\analytics\analyze.py       74      0     12      0 100.00%
+job_alert\analytics\export.py        38      0      6      0 100.00%
+job_alert\analytics\quality.py       60      0     10      0 100.00%
+job_alert\analytics\schema.py        48      0     10      0 100.00%
+job_alert\config.py                  30      0      2      0 100.00%
+job_alert\cv_summary.py               1      0      0      0 100.00%
+job_alert\db.py                      46      4      8      0  92.59%   24-28
+job_alert\i18n.py                    17      0      0      0 100.00%
+job_alert\notion_sync.py             42      3      6      0  93.75%   109-111
+job_alert\scorer.py                  69      0     12      0 100.00%
+job_alert\sources\__init__.py         0      0      0      0 100.00%
+job_alert\sources\getonboard.py      72      2     22      3  94.68%   95->90, 115, 122
+job_alert\sources\remoteok.py        51      3     10      1  93.44%   61-63, 91->89
+job_alert\telegram_digest.py         36      0      6      0 100.00%
+------------------------------------------------------------------------------
+TOTAL                               585     12    104      4  97.68%
+Required test coverage of 90% reached. Total coverage: 97.68%

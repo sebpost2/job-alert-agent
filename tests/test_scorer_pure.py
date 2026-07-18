@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import pytest
 
+from job_alert.i18n import MESSAGES
 from job_alert.scorer import (
-    JSON_SHAPE_HINT,
     _hard_skip_reason,
     _system_prompt,
 )
@@ -89,7 +89,7 @@ def test_system_prompt_includes_cv_and_keywords() -> None:
     assert "Sebastián Postigo" in prompt, "CV summary must be injected"
     for kw in keywords:
         assert kw in prompt, f"keyword {kw} must appear in the prompt"
-    assert JSON_SHAPE_HINT in prompt
+    assert MESSAGES["en"]["json_shape_hint"].format() in prompt
     assert '"fit_score"' in prompt and '"verdict"' in prompt
 
 

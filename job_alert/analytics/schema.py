@@ -18,9 +18,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-KNOWN_SOURCES: tuple[str, ...] = ("getonboard", "remoteok")
-KNOWN_VERDICTS: tuple[str, ...] = ("fit", "stretch", "skip")
-
 Source = Literal["getonboard", "remoteok"]
 Verdict = Literal["fit", "stretch", "skip"]
 
@@ -66,10 +63,7 @@ class JobRow(BaseModel):
             raise ValueError(
                 f"notified_at is set but verdict={self.verdict!r}, expected 'fit'"
             )
-        if self.scored_at is None:  # pragma: no cover
-            # Defense-in-depth: `_scoring_is_atomic` rejects this combination
-            # (verdict='fit' implies scored_at non-null) before we get here.
-            raise ValueError("notified_at is set but scored_at is null")
+        assert self.scored_at is not None  # _scoring_is_atomic guarantees this
         if self.notified_at < self.scored_at:
             raise ValueError("notified_at must be >= scored_at")
         return self

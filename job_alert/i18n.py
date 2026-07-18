@@ -28,6 +28,10 @@ class Strings(TypedDict):
     # scorer.py
     json_shape_hint: str
     system_prompt: str  # template: {cv_summary}, {keywords}, {json_shape_hint}
+    user_msg: str  # template: {source}, {title}, {company}, {location}, {desc}
+    unknown_company: str
+    unspecified_location: str
+    no_description: str
 
 
 def normalize_lang(raw: str) -> Lang:
@@ -90,6 +94,19 @@ REGLAS DE CLASIFICACIÓN (estrictas):
 Razón SIEMPRE concreta: cita el match o el descarte específico, no escribas frases genéricas.
 
 {json_shape_hint}""",
+    "user_msg": """\
+Evalúa este job:
+
+Fuente: {source}
+Título: {title}
+Empresa: {company}
+Ubicación: {location}
+
+Descripción:
+{desc}""",
+    "unknown_company": "(desconocida)",
+    "unspecified_location": "(no especificada)",
+    "no_description": "(sin descripción)",
 }
 
 
@@ -147,6 +164,19 @@ CLASSIFICATION RULES (strict):
 ALWAYS give a concrete reason: cite the specific match or rejection, do not write generic phrases.
 
 {json_shape_hint}""",
+    "user_msg": """\
+Evaluate this job:
+
+Source: {source}
+Title: {title}
+Company: {company}
+Location: {location}
+
+Description:
+{desc}""",
+    "unknown_company": "(unknown)",
+    "unspecified_location": "(not specified)",
+    "no_description": "(no description)",
 }
 
 

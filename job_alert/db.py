@@ -156,4 +156,5 @@ def _parse_date(value: str | date | None) -> date | None:
     try:
         return date.fromisoformat(value)
     except (ValueError, TypeError):
+        log.warning("db: no se pudo parsear posted_date=%r, se descarta", value)
         return None

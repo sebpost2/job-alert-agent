@@ -12,7 +12,8 @@ from typing import Any
 
 import pytest
 
-from job_alert.sources.getonboard import _normalize, _strip_html
+from job_alert.sources import strip_html as _strip_html
+from job_alert.sources.getonboard import _normalize
 
 
 @pytest.mark.parametrize(

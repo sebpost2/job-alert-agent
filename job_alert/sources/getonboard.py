@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import logging
-import re
 from datetime import datetime, timezone
-from html import unescape
 from typing import Any
 
 import httpx
+
+from . import strip_html as _strip_html
 
 log = logging.getLogger(__name__)
 
@@ -21,14 +21,6 @@ CATEGORIES: tuple[str, ...] = (
     "data-science-analytics",
     "sysadmin-devops-qa",
 )
-
-
-def _strip_html(html: str | None) -> str:
-    if not html:
-        return ""
-    text = re.sub(r"<[^>]+>", " ", html)
-    text = re.sub(r"\s+", " ", text)
-    return unescape(text).strip()
 
 
 def _normalize(item: dict[str, Any]) -> dict[str, Any] | None:

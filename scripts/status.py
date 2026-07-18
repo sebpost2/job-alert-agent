@@ -8,9 +8,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-import truststore
+try:
+    import truststore
 
-truststore.inject_into_ssl()
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
 
 from job_alert import config as cfg_mod
 from job_alert import db
