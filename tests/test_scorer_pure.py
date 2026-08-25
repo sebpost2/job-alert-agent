@@ -165,3 +165,12 @@ def test_hard_skip_descarta_roles_funcionales(title: str) -> None:
 )
 def test_hard_skip_conserva_roles_tecnicos(title: str) -> None:
     assert _hard_skip_reason(title) is None, f"NO debería descartarse: {title}"
+
+
+def test_cv_summary_declara_preferencia_odoo_tecnico() -> None:
+    from job_alert.cv_summary import CV_SUMMARY
+
+    low = CV_SUMMARY.lower()
+    assert "técnico" in low
+    assert "funcional" in low, "debe decir explícitamente que rechaza rol funcional"
+    assert "español" in low

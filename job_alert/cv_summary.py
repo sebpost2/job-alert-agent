@@ -16,7 +16,13 @@ Portafolio personal (live): invoice-extractor (LLM visión), invoice-chat (agent
 Preferencias firmes:
 - Remoto preferido. Híbrido OK solo en Arequipa. Presencial fuera = no.
 - Seniority: Junior o Semi-Senior. Senior puro = no.
-- Stack moderno preferido (Python, full-stack JS, IA). Stack legacy (COBOL, ABAP) = no.
+- Odoo: SOLO rol técnico (desarrollo de módulos nuevos, edición de módulos existentes,
+  Python/XML/QWeb, integraciones, migración de módulos entre versiones).
+  Rol funcional = NO (consultor funcional, implementador, parametrización, key user,
+  levantamiento de requerimientos, capacitación de usuarios). Esto es bloqueante.
+- Idioma: prefiere ofertas en español (España, LatAm, Perú). Inglés B1 — acepta
+  ofertas en inglés si el rol no exige fluidez, pero baja prioridad.
+- Stack moderno preferido (Python, Odoo, full-stack JS, IA). Stack legacy (COBOL, ABAP) = no.
 
 Reglas de veredicto:
 - fit (70-100): junior/semi-senior remoto/LatAm, stack que ya conoce, idioma manejable.
