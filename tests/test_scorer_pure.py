@@ -130,3 +130,38 @@ def test_system_prompt_hard_skips_specific_non_es_en_languages(
     model learns the pattern instead of trying to interpret one phrase."""
     prompt = _system_prompt(("python",)).lower()
     assert language_token.lower() in prompt
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Consultor Funcional Odoo",
+        "Consultora Funcional ERP",
+        "Analista Funcional Odoo 17",
+        "Functional Consultant - Odoo",
+        "Functional Analyst ERP",
+        "Implementador Odoo",
+        "Implantador de ERP",
+        "Implementation Consultant (Odoo)",
+        "Soporte Funcional Odoo",
+        "Especialista en Parametrización Odoo",
+    ],
+)
+def test_hard_skip_descarta_roles_funcionales(title: str) -> None:
+    reason = _hard_skip_reason(title)
+    assert reason is not None, f"debería descartarse: {title}"
+    assert "funcional" in reason.lower()
+
+
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Desarrollador Odoo 19",
+        "Odoo Developer (Python)",
+        "Programador Odoo Python/XML",
+        "Backend Developer - Odoo modules",
+        "Desarrollador Python ERP",
+    ],
+)
+def test_hard_skip_conserva_roles_tecnicos(title: str) -> None:
+    assert _hard_skip_reason(title) is None, f"NO debería descartarse: {title}"

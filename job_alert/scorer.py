@@ -49,6 +49,22 @@ HARD_SKIP_SENIORITY = re.compile(
     re.IGNORECASE,
 )
 
+# El candidato hace SOLO desarrollo técnico de Odoo (módulos nuevos, edición de
+# módulos existentes). No quiere configuración/implementación funcional, así que
+# esos títulos se descartan sin gastar un call a Groq.
+ODOO_FUNCTIONAL_SKIP = re.compile(
+    r"("
+    r"consultor\w*\s+funcional|consultor[ií]a\s+funcional|"
+    r"analista\s+funcional|"
+    r"functional\s+consultant|functional\s+analyst|"
+    r"implementador\w*|implantador\w*|implantaci[óo]n|"
+    r"implementation\s+consultant|"
+    r"key\s+user|usuario\s+clave|"
+    r"soporte\s+funcional|parametrizaci[óo]n"
+    r")",
+    re.IGNORECASE,
+)
+
 
 def _hard_skip_reason(title: str) -> str | None:
     """Devuelve el motivo si el job debe saltarse sin pasar por el LLM."""
@@ -58,6 +74,9 @@ def _hard_skip_reason(title: str) -> str | None:
     m = HARD_SKIP_SENIORITY.search(title)
     if m:
         return f"Seniority out of junior/semi-senior range: '{m.group(1).lower()}'"
+    m = ODOO_FUNCTIONAL_SKIP.search(title)
+    if m:
+        return f"Rol funcional, no técnico: '{m.group(1).lower()}'"
     return None
 
 
