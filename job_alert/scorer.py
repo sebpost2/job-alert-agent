@@ -18,7 +18,7 @@ from .i18n import MESSAGES, Lang
 
 log = logging.getLogger(__name__)
 
-MODEL = "llama-3.1-8b-instant"
+MODEL = "openai/gpt-oss-20b"
 MAX_DESC_CHARS = 1500
 
 RESPONSE_FORMAT = {"type": "json_object"}
@@ -128,6 +128,9 @@ async def score_job(
         model=MODEL,
         messages=messages,
         response_format=cast(Any, RESPONSE_FORMAT),
+        # Reasoning model: the reasoning lands in message.reasoning, not
+        # content, so the JSON stays clean. "low" keeps each call cheap on TPM.
+        reasoning_effort="low",
         temperature=0.2,
     )
     raw = response.choices[0].message.content or "{}"
@@ -155,7 +158,7 @@ async def score_batch(
 ) -> list[tuple[int, ScoreResult | Exception]]:
     """Califica jobs en serie con pausa entre llamadas para respetar TPM de Groq.
 
-    Free tier es 6000 TPM para llama-3.1-8b-instant; cada call usa ~1000 tokens
+    El free tier de Groq limita TPM; cada call usa ~1000 tokens
     → 1 call cada ~10s nos da ~6 calls/min sostenido sin tocar el límite.
 
     Returns lista de (job_id, result_o_excepcion) en el orden de entrada.

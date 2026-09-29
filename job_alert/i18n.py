@@ -51,7 +51,7 @@ ES: Strings = {
     "view_offer": "Ver oferta",
     "sources": (
         "\n<i>Fuentes: getonboard + remoteok. "
-        "Powered by Groq llama-3.1-8b-instant.</i>"
+        "Powered by Groq gpt-oss-20b.</i>"
     ),
     "json_shape_hint": """\
 Tu respuesta DEBE ser JSON con exactamente este shape:
@@ -121,7 +121,7 @@ EN: Strings = {
     "view_offer": "View job",
     "sources": (
         "\n<i>Sources: getonboard + remoteok. "
-        "Powered by Groq llama-3.1-8b-instant.</i>"
+        "Powered by Groq gpt-oss-20b.</i>"
     ),
     "json_shape_hint": """\
 Your response MUST be JSON with exactly this shape:

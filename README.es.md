@@ -34,7 +34,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
 ## Highlights
 
 - **End-to-end automatizado**: cron de GitHub Actions dispara → Python scrapea 2 fuentes → LLM califica fit → Postgres dedupe → Notion archivo + Telegram digest. Sin intervención humana.
-- **LLM con structured output**: cada job se evalúa con Groq (`llama-3.1-8b-instant`), forzando JSON con `fit_score` (0-100), `verdict` (`fit`/`stretch`/`skip`) y `reason`. Razones específicas, no genéricas.
+- **LLM con structured output**: cada job se evalúa con Groq (`openai/gpt-oss-20b`), forzando JSON con `fit_score` (0-100), `verdict` (`fit`/`stretch`/`skip`) y `reason`. Razones específicas, no genéricas.
 - **Throttle inteligente del rate limit**: respeta los 6000 TPM del free tier de Groq con un intervalo mínimo entre llamadas, manteniendo el sistema en cuota sin caer.
 - **CV-aware**: el system prompt incluye un resumen estructurado del candidato (stack, seniority, geo, idioma) — el LLM no califica "es un buen rol" en abstracto, califica "encaja con ESTE candidato".
 - **Dos comandos, una arquitectura**: `python -m job_alert scrape` + `score` (cada 12h) y `digest` (diario 8am Lima). Componibles, testeables individualmente.
@@ -50,7 +50,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
 | HTTP | `httpx` (async) |
 | Base de datos | PostgreSQL (Neon, serverless) |
 | Driver DB | `asyncpg` |
-| LLM | Groq llama-3.1-8b-instant |
+| LLM | Groq gpt-oss-20b |
 | LLM SDK | `groq` oficial |
 | Notion | API HTTP directa via `httpx` |
 | Telegram | Bot API directa via `httpx` |
@@ -76,7 +76,7 @@ Autor: [sebpost2](https://github.com/sebpost2)
                              │   loop unscored jobs:               │
                              │   ├─ regex pre-filtro (no-IT, lead) │
                              │   │   → skip sin gastar call LLM    │
-                             │   ├─ Groq llama-3.1-8b-instant      │
+                             │   ├─ Groq gpt-oss-20b      │
                              │   │   (json_object con CV+keywords) │
                              │   ├─ 8s throttle entre calls (TPM)  │
                              │   └─ save fit_score/verdict/reason  │
@@ -172,7 +172,7 @@ Decisiones de diseño:
 ## Decisiones de diseño
 
 - **GitHub Actions sobre n8n**: el plan original era n8n cloud (workflow visual), pero discontinuaron el free tier en 2026. GitHub Actions es free permanente y los logs públicos son por sí mismos una pista de que el sistema corre confiablemente — mejor que una captura estática de n8n.
-- **Modelo `llama-3.1-8b-instant` sobre `gpt-oss-120b`**: el 120b tiene mejor reasoning pero solo 8000 TPM y soporta `json_schema`; el 8b tiene reasoning suficiente para clasificar fits, `json_object` mode, y similar TPM. Ambos llegan al mismo techo en este caso; el 8b gana en latencia.
+- **Modelo `openai/gpt-oss-20b` sobre `gpt-oss-120b`**: originalmente `llama-3.1-8b-instant`, que Groq retiró el 2026-08-16. El 20b es el reemplazo oficial de Groq; con `reasoning_effort="low"` clasifica fits bien, soporta `json_object` mode y se mantiene dentro del TPM del free tier. El 120b llega al mismo techo aquí y es más lento.
 - **Pre-filtro regex antes del LLM**: getonboard mezcla roles médicos, ventas, marketing, RR.HH., etc. Una regex barata sobre el título descarta los obvios no-IT y los `staff/principal/director` sin gastar un call a Groq. Reduce ~25-30 % del costo por ciclo.
 - **Solo `fit`+`stretch` van a Notion**: los `skip` se quedan en Postgres. La DB de Notion termina con 8-12 filas relevantes por ciclo en vez de 130 — usable como tablero de aplicaciones reales, no como log.
 - **Throttle explícito (8s entre calls)**: el SDK de Groq reintenta en 429 pero con concurrencia alta cada retry vuelve a hit TPM. Mejor controlar el ritmo desde el cliente y nunca tocar el límite.
