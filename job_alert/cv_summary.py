@@ -7,7 +7,8 @@ CV_SUMMARY = """\
 Candidato: Sebastián Postigo, egresado UCSP (Arequipa, Perú, 2025). Inglés B1.
 
 Experiencia:
-- Inbrasol Web Services (Nov 2025-Abr 2026, RxH): Desarrollador Odoo 19 (Python, XML, QWeb), SUNAT/UBL, CPQ.
+- Inbrasol Web Services (Nov 2025-Abr 2026, RxH): Desarrollador Odoo 19 (Python, XML, QWeb): módulos a medida
+  (cotizaciones, ítems en lote, precios, transporte), CPQ; XML de GRE Tipo 31 sin validar con SUNAT.
 - Neo Plus Business (Feb-May 2025, practicante): Laravel 11, Vue 3, GitLab CI, JWT, MessagePack.
 
 Stack: Python, TypeScript, Odoo, Laravel, Next.js, Vue 3, FastAPI, PostgreSQL, Prisma, Groq/Vercel AI SDK, Docker, Git.
