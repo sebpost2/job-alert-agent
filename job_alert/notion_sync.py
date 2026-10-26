@@ -23,7 +23,6 @@ NOTION_VERSION = "2022-06-28"
 def _properties_for(job: dict[str, Any]) -> dict[str, Any]:
     title = job["title"] or "(sin título)"
     company = (job.get("company") or "")[:2000]
-    reason = (job.get("reason") or "")[:2000]
 
     posted = job.get("posted_date")
     posted_iso = posted.isoformat() if posted else None
@@ -38,7 +37,8 @@ def _properties_for(job: dict[str, Any]) -> dict[str, Any]:
             if job.get("verdict") in ("fit", "stretch", "skip")
             else {"select": None}
         ),
-        "Reason": {"rich_text": [{"text": {"content": reason}}]},
+        # No "Reason": the board is public (linked from the portfolio) and the LLM's
+        # reasoning lists the candidate's gaps. It stays in Postgres and the Telegram digest.
         "Source": (
             {"select": {"name": job["source"]}}
             if job.get("source")

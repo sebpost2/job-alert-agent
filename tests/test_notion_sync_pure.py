@@ -36,9 +36,8 @@ def test_properties_happy_path() -> None:
     assert props["URL"]["url"] == "https://example.com/job/1"
     assert props["Fit Score"]["number"] == 80
     assert props["Verdict"]["select"]["name"] == "fit"
-    assert props["Reason"]["rich_text"][0]["text"]["content"] == (
-        "Stack matches and remote OK"
-    )
+    # The public board never gets the LLM's reasoning about the candidate.
+    assert "Reason" not in props
     assert props["Source"]["select"]["name"] == "getonboard"
     assert props["Posted"]["date"]["start"] == "2026-05-20"
 
@@ -63,7 +62,6 @@ def test_properties_missing_optional_fields() -> None:
     props = _properties_for(job)
     # Empty strings are valid Notion rich_text content.
     assert props["Company"]["rich_text"][0]["text"]["content"] == ""
-    assert props["Reason"]["rich_text"][0]["text"]["content"] == ""
     assert props["Verdict"] == {"select": None}
     assert props["Source"] == {"select": None}
     assert props["Posted"] == {"date": None}
@@ -74,7 +72,6 @@ def test_properties_missing_optional_fields() -> None:
 
 def test_properties_truncate_long_fields() -> None:
     long_text = "x" * 5000
-    props = _properties_for(_base_job(company=long_text, reason=long_text, title=long_text))
+    props = _properties_for(_base_job(company=long_text, title=long_text))
     assert len(props["Company"]["rich_text"][0]["text"]["content"]) == 2000
-    assert len(props["Reason"]["rich_text"][0]["text"]["content"]) == 2000
     assert len(props["Title"]["title"][0]["text"]["content"]) == 2000
